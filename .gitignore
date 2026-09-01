@@ -1,0 +1,18 @@
+# Nuxt dev/build
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+dist
+.env
+.env.local
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
