@@ -12,6 +12,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // Disable path prefix so components in subdirs keep their declared name
+  // e.g. components/blocks/BlockFaq.vue resolves to <BlockFaq>, not <BlocksBlockFaq>
+  components: [
+    { path: '~/components', pathPrefix: false }
+  ],
+
   // SQLite database path — relative to project root
   runtimeConfig: {
     databasePath: './data/tolnera.db',

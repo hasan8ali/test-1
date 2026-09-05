@@ -1,38 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import type { Page, Theme } from '~/types/builder'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const page = ref<Page | null>(null)
-const theme = ref<Theme | null>(null)
-const loading = ref(true)
-const error = ref('')
-
-const loadPage = async () => {
-  loading.value = true
-  error.value = ''
-  try {
-    // Find page by slug via API
+const { data: pageData, error: fetchError } = await useAsyncData(
+  () => `page-${slug.value}`,
+  async () => {
     const allPages = await $fetch<Page[]>('/api/pages')
     const found = allPages.find(p => p.slug === slug.value)
     if (!found) {
-      error.value = 'الصفحة غير موجودة'
-      return
+      throw createError({ statusCode: 404, statusMessage: 'الصفحة غير موجودة' })
     }
     if (found.status !== 'published') {
-      error.value = 'الصفحة غير منشورة بعد'
-      return
+      throw createError({ statusCode: 403, statusMessage: 'الصفحة غير منشورة بعد' })
     }
-    page.value = found
-    theme.value = await $fetch<Theme>(`/api/themes/${found.themeId}`)
-  } catch (e: any) {
-    error.value = e.message || 'حدث خطأ'
-  } finally {
-    loading.value = false
+    const theme = await $fetch<Theme>(`/api/themes/${found.themeId}`)
+    return { page: found, theme }
   }
-}
+)
+
+const page = computed(() => pageData.value?.page ?? null)
+const theme = computed(() => pageData.value?.theme ?? null)
+const error = computed(() => fetchError.value ? String(fetchError.value) : '')
 
 const themeStyle = computed(() => {
   if (!theme.value) return ''
@@ -63,18 +54,14 @@ const themeStyle = computed(() => {
 
 useHead(() => ({
   title: page.value?.title || 'صفحة',
-  meta: page.value?.meta?.description ? [{ name: 'description', content: page.value.meta.description }] : []
+  meta: page.value?.meta?.description
+    ? [{ name: 'description', content: page.value.meta.description }]
+    : []
 }))
-
-onMounted(loadPage)
 </script>
 
 <template>
-  <div v-if="loading" class="min-h-screen flex items-center justify-center">
-    <UIcon name="i-lucide-loader-circle" class="text-4xl animate-spin text-[var(--t-color-primary)]" />
-  </div>
-
-  <div v-else-if="error" class="min-h-screen flex items-center justify-center p-6">
+  <div v-if="error" class="min-h-screen flex items-center justify-center p-6">
     <div class="text-center">
       <UIcon name="i-lucide-file-question" class="text-6xl text-[var(--ui-text-muted)] mb-3" />
       <h1 class="text-2xl font-bold mb-2">{{ error }}</h1>
@@ -83,9 +70,9 @@ onMounted(loadPage)
     </div>
   </div>
 
-  <div v-else class="t-builder-canvas min-h-screen" :style="themeStyle">
+  <div v-else-if="page" class="t-builder-canvas min-h-screen" :style="themeStyle">
     <BlockRenderer
-      v-for="block in page!.blocks"
+      v-for="block in page.blocks"
       :key="block.id"
       :block="block"
       :editing="false"

@@ -2,6 +2,10 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useBuilderStore } from '~/stores/builder'
 import type { Theme } from '~/types/builder'
+import BlockPalette from '~/components/builder/BlockPalette.vue'
+import LayersPanel from '~/components/builder/LayersPanel.vue'
+import BuilderCanvas from '~/components/builder/Canvas.vue'
+import Inspector from '~/components/builder/Inspector.vue'
 
 const route = useRoute()
 const store = useBuilderStore()
@@ -273,7 +277,7 @@ const saveStatus = computed(() => {
       </aside>
 
       <main class="flex-1 overflow-hidden">
-        <Canvas />
+        <BuilderCanvas />
       </main>
 
       <aside v-if="showRightPanel" class="w-80 flex-shrink-0 border-r border-[var(--ui-border)]">
