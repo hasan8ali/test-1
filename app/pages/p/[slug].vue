@@ -1,78 +1,52 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Page, Theme } from '~/types/builder'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const { data: pageData, error: fetchError } = await useAsyncData(
-  () => `page-${slug.value}`,
-  async () => {
-    const allPages = await $fetch<Page[]>('/api/pages')
-    const found = allPages.find(p => p.slug === slug.value)
-    if (!found) {
-      throw createError({ statusCode: 404, statusMessage: 'الصفحة غير موجودة' })
-    }
-    if (found.status !== 'published') {
-      throw createError({ statusCode: 403, statusMessage: 'الصفحة غير منشورة بعد' })
-    }
-    const theme = await $fetch<Theme>(`/api/themes/${found.themeId}`)
-    return { page: found, theme }
-  }
+const { data, error } = await useAsyncData(`public-${slug.value}`, () =>
+  $fetch(`/api/public/${slug.value}`).catch(() => null)
 )
 
-const page = computed(() => pageData.value?.page ?? null)
-const theme = computed(() => pageData.value?.theme ?? null)
-const error = computed(() => fetchError.value ? String(fetchError.value) : '')
+const site = computed(() => (data.value as any)?.site || null)
+const theme = computed(() => (data.value as any)?.theme || null)
+const pages = computed(() => (data.value as any)?.pages || [])
+
+// Show home page by default
+const currentPage = computed(() => pages.value.find((p: any) => p.isHome) || pages.value[0] || null)
 
 const themeStyle = computed(() => {
   if (!theme.value) return ''
-  const tokens = theme.value.tokens || {}
+  const t = theme.value.tokens || {}
   const map: Record<string, string> = {
-    'color.primary': '--t-color-primary',
-    'color.primaryForeground': '--t-color-primary-foreground',
-    'color.secondary': '--t-color-secondary',
-    'color.secondaryForeground': '--t-color-secondary-foreground',
-    'color.accent': '--t-color-accent',
-    'color.accentForeground': '--t-color-accent-foreground',
-    'color.bg': '--t-color-bg',
-    'color.surface': '--t-color-surface',
-    'color.surfaceElevated': '--t-color-surface-elevated',
-    'color.border': '--t-color-border',
-    'color.text': '--t-color-text',
-    'color.textMuted': '--t-color-text-muted',
-    'color.textSubtle': '--t-color-text-subtle',
-    'font.heading': '--t-font-heading',
-    'font.body': '--t-font-body',
-    'font.mono': '--t-font-mono'
+    'color.bg': '--canvas-bg',
+    'color.surface': '--canvas-surface',
+    'color.text': '--canvas-text',
+    'color.textMuted': '--canvas-text-muted',
+    'color.accent': '--canvas-accent',
+    'color.accentFg': '--canvas-accent-fg',
+    'color.border': '--canvas-border'
   }
-  return Object.entries(tokens)
-    .filter(([k, v]) => map[k] && v)
-    .map(([k, v]) => `${map[k]}: ${v}`)
-    .join('; ')
+  return Object.entries(t).filter(([k, v]) => map[k] && v).map(([k, v]) => `${map[k]}: ${v}`).join('; ')
 })
 
 useHead(() => ({
-  title: page.value?.title || 'صفحة',
-  meta: page.value?.meta?.description
-    ? [{ name: 'description', content: page.value.meta.description }]
-    : []
+  title: site.value?.name || 'Tolnera'
 }))
 </script>
 
 <template>
-  <div v-if="error" class="min-h-screen flex items-center justify-center p-6">
+  <div v-if="!data" class="min-h-screen flex items-center justify-center">
     <div class="text-center">
-      <UIcon name="i-lucide-file-question" class="text-6xl text-[var(--ui-text-muted)] mb-3" />
-      <h1 class="text-2xl font-bold mb-2">{{ error }}</h1>
-      <p class="text-[var(--ui-text-muted)] mb-5">قد تكون الصفحة حُذفت أو لم تُنشر بعد.</p>
-      <UButton to="/" color="primary">العودة للرئيسية</UButton>
+      <UIcon name="i-lucide-globe" class="text-4xl text-[var(--text-subtle)] mb-3" />
+      <h1 class="text-xl font-bold mb-1">الموقع غير موجود</h1>
+      <p class="text-sm text-[var(--text-muted)]">قد يكون غير منشور أو محذوفًا</p>
     </div>
   </div>
 
-  <div v-else-if="page" class="t-builder-canvas min-h-screen" :style="themeStyle">
+  <div v-else class="builder-canvas min-h-screen" :style="themeStyle">
     <BlockRenderer
-      v-for="block in page.blocks"
+      v-for="block in currentPage?.blocks || []"
       :key="block.id"
       :block="block"
       :editing="false"

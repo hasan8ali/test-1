@@ -1,18 +1,15 @@
-import { desc, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { assets } from '../../db/schema'
+import { requireAuth, getTenantId } from '../../lib/auth'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+  const tenantId = getTenantId(event)
   const db = useDB()
-  const rows = db.select({
-    id: assets.id,
-    name: assets.name,
-    type: assets.type,
-    size: assets.size,
-    createdAt: assets.createdAt
-  }).from(assets).orderBy(desc(assets.createdAt)).all()
 
-  return rows.map((r) => ({
+  const rows = db.select().from(assets).where(eq(assets.tenantId, tenantId)).all()
+  return rows.map(r => ({
     ...r,
-    url: `/api/assets/${r.id}/raw`
+    url: `/api/assets/raw/${r.storageKey}`
   }))
 })

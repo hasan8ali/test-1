@@ -1,45 +1,24 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
-
-const widthStyle = computed(() => {
-  switch (props.block.props.width) {
-    case '100%': return 'width: 100%'
-    case '50%': return 'width: 50%'
-    case '320px': return 'width: 320px'
-    case '640px': return 'width: 640px'
-    case '1024px': return 'width: 1024px'
-    default: return 'width: auto; max-width: 100%'
-  }
-})
-
-const radiusClass = computed(() => ({
-  none: 'rounded-none', sm: 'rounded-sm', md: 'rounded-md',
-  lg: 'rounded-lg', xl: 'rounded-xl', full: 'rounded-full'
-}[props.block.props.radius] || 'rounded-lg'))
-
-const shadowClass = computed(() => ({
-  none: 'shadow-none', sm: 'shadow-sm', md: 'shadow-md',
-  lg: 'shadow-lg', xl: 'shadow-xl'
-}[props.block.props.shadow] || 'shadow-md'))
-
-const alignClass = computed(() => ({
-  right: 'mr-auto', center: 'mx-auto', left: 'ml-auto'
-}[props.block.props.align] || 'mx-auto'))
+const radii = { none: '0', sm: '4px', md: '8px', lg: '16px', xl: '24px', full: '9999px' }
+const aligns = { right: 'margin-right:auto', center: 'margin:0 auto', left: 'margin-left:auto' }
 </script>
-
 <template>
-  <div v-if="!block.props.src" class="t-drop-zone">
-    <UIcon name="i-lucide-image" class="text-2xl mb-2" />
-    <p>اختر صورة من الـ Inspector</p>
+  <div v-if="!block.props.src" class="blk-empty">
+    <UIcon name="i-lucide-image" class="mr-1" /> أضف صورة من الخصائص
   </div>
   <img
     v-else
     :src="block.props.src"
-    :alt="block.props.alt"
-    :class="['block', radiusClass, shadowClass, alignClass]"
-    :style="widthStyle"
+    :alt="block.props.alt || ''"
+    :style="{
+      borderRadius: radii[block.props.radius as keyof typeof radii] || '8px',
+      width: '100%',
+      maxWidth: '100%',
+      display: 'block',
+      [aligns[block.props.align as keyof typeof aligns] || 'margin:0 auto']: true
+    }"
     loading="lazy"
   >
 </template>

@@ -1,41 +1,104 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
+
+const studentsText = computed(() => {
+  const s = props.block.props.students
+  if (!s) return '0'
+  return Number(s).toLocaleString('ar-EG')
+})
 </script>
 
 <template>
-  <div class="bg-[var(--t-color-surface-elevated)] rounded-2xl overflow-hidden border border-[var(--t-color-border)] hover:shadow-xl transition-all hover:-translate-y-1">
-    <div class="aspect-video bg-gradient-to-br from-[var(--t-color-primary)] to-[var(--t-color-secondary)] flex items-center justify-center relative">
-      <UIcon name="i-lucide-graduation-cap" class="text-white text-5xl" />
-      <button class="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
-        <div class="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-          <UIcon name="i-lucide-play" class="text-[var(--t-color-primary)] text-2xl ms-1" />
-        </div>
-      </button>
+  <div class="course-card">
+    <div class="course-card__thumb">
+      <UIcon name="i-lucide-graduation-cap" class="course-card__thumb-icon" />
     </div>
-    <div class="p-5">
-      <div class="flex items-center gap-2 mb-2 text-sm">
-        <UIcon name="i-lucide-star" class="text-yellow-400" />
-        <span class="font-bold">{{ block.props.rating }}</span>
-        <span class="text-[var(--t-color-text-muted)]">·</span>
-        <span class="text-[var(--t-color-text-muted)]">{{ block.props.students.toLocaleString('ar-EG') }} طالب</span>
+    <div class="course-card__body">
+      <div class="course-card__rating">
+        <UIcon name="i-lucide-star" class="course-card__star" />
+        <span class="course-card__rating-value">{{ block.props.rating }}</span>
+        <span class="course-card__students">{{ studentsText }} طالب</span>
       </div>
-      <h3 class="font-bold text-lg mb-1 line-clamp-2">{{ block.props.title }}</h3>
-      <p class="text-sm text-[var(--t-color-text-muted)] mb-3">{{ block.props.instructor }}</p>
-      <div class="flex items-center gap-2 text-sm text-[var(--t-color-text-muted)] mb-4">
-        <UIcon name="i-lucide-clock" />
-        <span>{{ block.props.duration }}</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <div class="flex items-baseline gap-1">
-          <span class="text-2xl font-extrabold text-[var(--t-color-primary)]">{{ block.props.price }}</span>
-          <span class="text-sm">{{ block.props.currency }}</span>
+      <h3 class="course-card__title">{{ block.props.title }}</h3>
+      <p class="course-card__instructor">{{ block.props.instructor }}</p>
+      <div class="course-card__footer">
+        <div class="course-card__price">
+          <span class="course-card__price-value">{{ block.props.price }}</span>
+          <span class="course-card__price-currency">{{ block.props.currency }}</span>
         </div>
-        <a :href="block.props.href" class="text-sm font-bold text-[var(--t-color-primary)] hover:underline">
-          عرض الكورس ←
-        </a>
+        <span class="course-card__duration">{{ block.props.duration }}</span>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.course-card {
+  border: 1px solid var(--canvas-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.course-card__thumb {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--canvas-accent), var(--canvas-text));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.course-card__thumb-icon {
+  color: var(--canvas-accent-fg);
+  font-size: 40px;
+}
+.course-card__body {
+  padding: 16px;
+}
+.course-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}
+.course-card__star {
+  color: #facc15;
+}
+.course-card__rating-value {
+  font-weight: 600;
+}
+.course-card__students {
+  color: var(--canvas-text-muted);
+}
+.course-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.course-card__instructor {
+  font-size: 0.85rem;
+  color: var(--canvas-text-muted);
+  margin: 0 0 12px;
+}
+.course-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.course-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.course-card__price-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--canvas-accent);
+}
+.course-card__price-currency {
+  font-size: 0.8rem;
+}
+.course-card__duration {
+  font-size: 0.8rem;
+  color: var(--canvas-text-muted);
+}
+</style>

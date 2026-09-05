@@ -1,68 +1,54 @@
-import { z } from 'zod'
+import { eq } from 'drizzle-orm'
 import { assets } from '../../db/schema'
-import { generateId, validateFileType, MAX_UPLOAD_SIZE, detectFileType } from '../../utils/security'
+import { requireAuth, getTenantId } from '../../lib/auth'
+import { genId, detectMime, MAX_UPLOAD } from '../../utils/security'
+import { getStorage } from '../../utils/storage'
 
-/**
- * Upload an asset (image/file).
- * Accepts multipart/form-data with field 'file'.
- * Validates file size and magic bytes (not just the declared MIME).
- */
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+  const tenantId = getTenantId(event)
+
   const form = await readFormData(event)
   const file = form.get('file')
   if (!(file instanceof File)) {
     throw createError({ statusCode: 400, statusMessage: 'No file provided' })
   }
 
-  if (file.size > MAX_UPLOAD_SIZE) {
-    throw createError({
-      statusCode: 413,
-      statusMessage: `File too large. Max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB`
-    })
+  if (file.size > MAX_UPLOAD) {
+    throw createError({ statusCode: 413, statusMessage: 'File too large (max 5MB)' })
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
-
-  // Validate type via magic bytes (don't trust the declared MIME)
-  const detectedType = detectFileType(buffer)
-  if (!detectedType) {
-    throw createError({
-      statusCode: 415,
-      statusMessage: 'Unsupported file type'
-    })
+  const buf = Buffer.from(await file.arrayBuffer())
+  const mime = detectMime(buf)
+  if (!mime) {
+    throw createError({ statusCode: 415, statusMessage: 'Unsupported file type' })
   }
 
-  // Only allow image types in v1 (block images, hero backgrounds)
-  if (!detectedType.startsWith('image/')) {
-    throw createError({
-      statusCode: 415,
-      statusMessage: 'Only image files are allowed in v1'
-    })
-  }
+  const id = genId()
+  const now = Math.floor(Date.now() / 1000)
+  const storageKey = `${tenantId}/${id}-${file.name}`
 
-  if (!validateFileType(buffer, detectedType)) {
-    throw createError({ statusCode: 415, statusMessage: 'File type mismatch' })
-  }
+  const storage = getStorage()
+  await storage.save(storageKey, buf, mime)
 
   const db = useDB()
-  const id = generateId()
-  const now = Math.floor(Date.now() / 1000)
-
   db.insert(assets).values({
     id,
+    tenantId,
     name: file.name,
-    type: detectedType,
+    type: mime,
     size: file.size,
-    data: buffer,
+    storageKey,
     createdAt: now
   }).run()
 
   return {
     id,
     name: file.name,
-    type: detectedType,
+    type: mime,
     size: file.size,
-    url: `/api/assets/${id}/raw`,
+    storageKey,
+    url: storage.url(storageKey),
     createdAt: now
   }
 })

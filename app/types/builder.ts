@@ -1,42 +1,23 @@
-/**
- * Core type definitions for the Tolnera Page & Theme Builder.
- * These types are the contract between the canvas, the renderer, the
- * inspector, the API, and the database. Keep them centralized.
- */
-
-/* ---------- Block tree ---------- */
+/* ===== Core types for the builder ===== */
 
 export type BlockType =
   // Layout
-  | 'container'
-  | 'grid'
-  | 'columns'
-  | 'divider'
-  | 'spacer'
+  | 'container' | 'columns' | 'spacer' | 'divider'
   // Content
-  | 'heading'
-  | 'text'
-  | 'richtext'
-  | 'image'
-  | 'video'
-  | 'button'
-  | 'icon'
+  | 'heading' | 'text' | 'image' | 'video' | 'button' | 'icon'
   // Composed
-  | 'hero'
-  | 'feature-grid'
-  | 'pricing-card'
-  | 'testimonial'
-  | 'faq'
-  | 'cta'
-  | 'stats'
-  // Tolnera-specific (forward-compat with main platform)
-  | 'course-grid'
-  | 'course-card'
-  | 'instructor-card'
-  | 'signup-form'
-  // Advanced (sandboxed)
-  | 'custom-html'
-  | 'code-block'
+  | 'hero' | 'feature-grid' | 'pricing-table' | 'testimonial-grid'
+  | 'faq' | 'stats' | 'enrollment-cta' | 'page-header'
+  // Education-specific
+  | 'course-grid' | 'course-card' | 'curriculum-list'
+  | 'instructor-bio' | 'instructor-grid'
+  // Advanced
+  | 'custom-code'
+
+export interface BlockResponsive {
+  tablet?: Record<string, any>
+  mobile?: Record<string, any>
+}
 
 export interface BlockVisibility {
   mobile: boolean
@@ -44,148 +25,116 @@ export interface BlockVisibility {
   desktop: boolean
 }
 
-export interface BlockAdvanced {
-  /** Custom CSS class appended to the block root */
-  customClass?: string
-  /** Inline CSS style (sanitized on render) */
-  customStyle?: string
-  /** Custom HTML id */
-  customId?: string
-}
-
-export interface Block<T = Record<string, any>> {
-  /** Stable unique id (uuid v4) */
+export interface Block {
   id: string
-  /** Block type — dispatches to the matching renderer + inspector */
   type: BlockType
-  /** Block-specific configuration */
-  props: T
-  /** Children for container-type blocks */
-  children?: Block[]
-  /** Responsive visibility rules */
+  props: Record<string, any>
+  responsive?: BlockResponsive
   visibility: BlockVisibility
-  /** Advanced overrides for power users */
-  advanced?: BlockAdvanced
+  children?: Block[]
+  advanced?: { customClass?: string; customId?: string }
 }
-
-/* ---------- Page ---------- */
-
-export type PageStatus = 'draft' | 'published'
-
-export interface Page {
-  id: string
-  slug: string
-  title: string
-  status: PageStatus
-  themeId: string
-  /** Serialized Block[] (the page body) */
-  blocks: Block[]
-  /** SEO + social */
-  meta?: {
-    description?: string
-    ogImage?: string
-    keywords?: string[]
-  }
-  createdAt: number
-  updatedAt: number
-}
-
-/* ---------- Theme ---------- */
 
 export interface ThemeTokens {
-  /* Brand colors */
-  'color.primary'?: string
-  'color.primaryForeground'?: string
-  'color.secondary'?: string
-  'color.secondaryForeground'?: string
-  'color.accent'?: string
-  'color.accentForeground'?: string
-
-  /* Surface */
   'color.bg'?: string
   'color.surface'?: string
-  'color.surfaceElevated'?: string
-  'color.border'?: string
-
-  /* Text */
   'color.text'?: string
   'color.textMuted'?: string
-  'color.textSubtle'?: string
-
-  /* Typography */
+  'color.accent'?: string
+  'color.accentFg'?: string
+  'color.border'?: string
   'font.heading'?: string
   'font.body'?: string
-  'font.mono'?: string
-
-  /* Radius */
-  'radius.sm'?: string
-  'radius.md'?: string
-  'radius.lg'?: string
-  'radius.xl'?: string
-
-  /* Shadows */
-  'shadow.sm'?: string
-  'shadow.md'?: string
-  'shadow.lg'?: string
+  'radius'?: string
+  [key: string]: string | undefined
 }
 
 export interface Theme {
   id: string
+  tenantId: string | null
   name: string
   description: string
-  /** Thumbnail image (data URL or path) */
-  thumbnail?: string
-  /** Token overrides (inherits from parent + built-in defaults) */
   tokens: ThemeTokens
-  /** Parent theme for inheritance */
-  parentThemeId?: string | null
+  parentThemeId: string | null
+  version: number
   isBuiltIn: boolean
   createdAt: number
   updatedAt: number
 }
 
-/* ---------- Snapshots (time travel) ---------- */
-
-export interface Snapshot {
-  id: string
-  pageId: string
-  /** Serialized Block[] at the moment of capture */
+export interface TemplatePage {
+  slug: string
+  title: string
+  isHome: boolean
   blocks: Block[]
-  /** Optional named checkpoint */
-  label?: string
-  /** Diff summary vs previous snapshot, for the timeline UI */
-  summary?: string
-  createdAt: number
 }
 
-/* ---------- Assets ---------- */
+export interface Template {
+  id: string
+  tenantId: string | null
+  name: string
+  description: string
+  category: 'solo-course' | 'academy' | 'mentor' | string
+  pages: TemplatePage[]
+  defaultThemeId: string | null
+  thumbnail: string | null
+  version: number
+  isBuiltIn: boolean
+}
+
+export interface Site {
+  id: string
+  tenantId: string
+  templateId: string | null
+  name: string
+  slug: string
+  themeId: string
+  status: 'draft' | 'published'
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Page {
+  id: string
+  siteId: string
+  tenantId: string
+  slug: string
+  title: string
+  blocks: Block[]
+  meta: { description?: string; ogImage?: string } | null
+  isHome: boolean
+  createdAt: number
+  updatedAt: number
+}
 
 export interface Asset {
   id: string
+  tenantId: string
   name: string
-  type: string // MIME
+  type: string
   size: number
-  /** Blob data (stored in SQLite) */
-  data: ArrayBuffer
-  url: string // computed: /api/assets/[id]/raw
+  storageKey: string
+  url: string
   createdAt: number
 }
 
-/* ---------- Block registry metadata ---------- */
+export interface AuthUser {
+  id: string
+  tenantId: string
+  email: string
+  name: string
+}
 
-export type BlockCategory = 'layout' | 'content' | 'composed' | 'tolnera' | 'advanced'
+/* ===== Block registry metadata ===== */
+
+export type BlockCategory = 'layout' | 'content' | 'composed' | 'education' | 'advanced'
 
 export interface BlockDefinition {
   type: BlockType
   label: string
   description: string
   category: BlockCategory
-  /** Lucide icon name */
   icon: string
-  /** Whether this block can have children */
   acceptsChildren: boolean
-  /** Default props when a new instance is created */
   defaultProps: () => Record<string, any>
-  /** Zod schema for validating props */
-  schema: any
 }

@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
+const pad = { none: '0', sm: '24px', md: '48px', lg: '64px', xl: '96px' }
 </script>
-
 <template>
-  <section class="py-16 px-6">
-    <div class="mx-auto max-w-5xl">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div
-          v-for="(item, i) in block.props.items"
-          :key="i"
-          class="text-center p-6 rounded-2xl bg-[var(--t-color-surface-elevated)]"
-        >
-          <div class="text-4xl md:text-5xl font-extrabold text-[var(--t-color-primary)] mb-2">
-            {{ item.value }}
-          </div>
-          <div class="text-sm text-[var(--t-color-text-muted)] font-medium">
-            {{ item.label }}
-          </div>
+  <section :style="{ paddingTop: pad[block.props.paddingY as keyof typeof pad] || '48px', paddingBottom: pad[block.props.paddingY as keyof typeof pad] || '48px', paddingRight: '24px', paddingLeft: '24px' }">
+    <div :style="{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '24px', textAlign: 'center' }">
+      <div v-for="(item, i) in block.props.items" :key="i">
+        <div :style="{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--canvas-accent)', letterSpacing: '-0.02em', lineHeight: 1 }">
+          {{ item.value }}
+        </div>
+        <div :style="{ fontSize: '0.85rem', color: 'var(--canvas-text-muted)', marginTop: '4px' }">
+          {{ item.label }}
         </div>
       </div>
     </div>

@@ -1,61 +1,49 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
+const pad: Record<string, string> = { none: '0', sm: '24px', md: '48px', lg: '64px', xl: '96px' }
 
-// For demo purposes, show static course cards.
-// In production, this would fetch from the configured apiUrl.
-const demoCourses = [
-  { title: 'تعلّم React من الصفر', instructor: 'م. أحمد علي', price: '299', image: '', rating: 4.8, students: 1240, duration: '12 ساعة' },
-  { title: 'Vue.js المتقدم', instructor: 'م. سارة أحمد', price: '399', image: '', rating: 4.9, students: 890, duration: '15 ساعة' },
-  { title: 'تصميم UI/UX', instructor: 'أ. خالد محمد', price: '499', image: '', rating: 4.7, students: 2100, duration: '20 ساعة' },
-  { title: 'Node.js والـ APIs', instructor: 'م. أحمد علي', price: '349', image: '', rating: 4.8, students: 1560, duration: '18 ساعة' },
-  { title: 'Python للمبتدئين', instructor: 'د. منى حسن', price: '249', image: '', rating: 4.6, students: 3200, duration: '10 ساعة' },
-  { title: 'Tailwind CSS Master', instructor: 'م. سارة أحمد', price: '199', image: '', rating: 4.9, students: 980, duration: '8 ساعة' }
+const courses = [
+  { title: 'تعلّم React من الصفر', instructor: 'م. أحمد', price: '299', rating: 4.8, students: 1240, duration: '12h' },
+  { title: 'Vue.js المتقدم', instructor: 'م. سارة', price: '399', rating: 4.9, students: 890, duration: '15h' },
+  { title: 'تصميم UI/UX', instructor: 'أ. خالد', price: '499', rating: 4.7, students: 2100, duration: '20h' },
+  { title: 'Node.js والـ APIs', instructor: 'م. أحمد', price: '349', rating: 4.8, students: 1560, duration: '18h' },
+  { title: 'Python للمبتدئين', instructor: 'د. منى', price: '249', rating: 4.6, students: 3200, duration: '10h' },
+  { title: 'Tailwind CSS', instructor: 'م. سارة', price: '199', rating: 4.9, students: 980, duration: '8h' }
 ]
+
+const gridCols = "repeat(auto-fill, minmax(min(100%, 280px), 1fr))"
 </script>
 
 <template>
-  <section class="py-16 px-6">
-    <div class="mx-auto max-w-6xl">
-      <h2 v-if="block.props.title" class="text-3xl md:text-4xl font-bold text-center mb-10">
+  <section :style="{ paddingTop: pad[block.props.paddingY] || '64px', paddingBottom: pad[block.props.paddingY] || '64px', paddingRight: '24px', paddingLeft: '24px' }">
+    <div :style="{ maxWidth: '1200px', margin: '0 auto' }">
+      <h2 v-if="block.props.title" :style="{ fontSize: '1.875rem', fontWeight: 700, textAlign: 'center', marginBottom: '40px' }">
         {{ block.props.title }}
       </h2>
-      <div
-        class="grid gap-6"
-        :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, 280px), 1fr))` }"
-      >
+      <div :style="{ display: 'grid', gridTemplateColumns: gridCols, gap: '20px' }">
         <div
-          v-for="(course, i) in demoCourses.slice(0, block.props.limit)"
+          v-for="(c, i) in courses"
           :key="i"
-          class="bg-[var(--t-color-surface-elevated)] rounded-2xl overflow-hidden border border-[var(--t-color-border)] hover:shadow-xl transition-all hover:-translate-y-1"
+          :style="{ border: '1px solid var(--canvas-border)', borderRadius: '12px', overflow: 'hidden' }"
         >
-          <!-- Course thumbnail -->
-          <div class="aspect-video bg-gradient-to-br from-[var(--t-color-primary)] to-[var(--t-color-secondary)] flex items-center justify-center">
-            <UIcon name="i-lucide-graduation-cap" class="text-white text-5xl" />
+          <div :style="{ aspectRatio: '16 / 9', background: 'linear-gradient(135deg, var(--canvas-accent), var(--canvas-text))', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
+            <UIcon name="i-lucide-graduation-cap" :style="{ color: 'var(--canvas-accent-fg)', fontSize: '40px' }" />
           </div>
-          <!-- Course body -->
-          <div class="p-5">
-            <div class="flex items-center gap-2 mb-2 text-sm">
-              <UIcon name="i-lucide-star" class="text-yellow-400" />
-              <span class="font-bold">{{ course.rating }}</span>
-              <span class="text-[var(--t-color-text-muted)]">·</span>
-              <span class="text-[var(--t-color-text-muted)]">{{ course.students.toLocaleString('ar-EG') }} طالب</span>
+          <div :style="{ padding: '16px' }">
+            <div :style="{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.8rem' }">
+              <UIcon name="i-lucide-star" :style="{ color: '#facc15' }" />
+              <span :style="{ fontWeight: 600 }">{{ c.rating }}</span>
+              <span :style="{ color: 'var(--canvas-text-muted)' }">{{ c.students.toLocaleString() }} طالب</span>
             </div>
-            <h3 class="font-bold text-lg mb-1 line-clamp-2">{{ course.title }}</h3>
-            <p class="text-sm text-[var(--t-color-text-muted)] mb-3">{{ course.instructor }}</p>
-            <div class="flex items-center gap-2 text-sm text-[var(--t-color-text-muted)] mb-4">
-              <UIcon name="i-lucide-clock" />
-              <span>{{ course.duration }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="flex items-baseline gap-1">
-                <span class="text-2xl font-extrabold text-[var(--t-color-primary)]">{{ course.price }}</span>
-                <span class="text-sm">ج.م</span>
+            <h3 :style="{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }">{{ c.title }}</h3>
+            <p :style="{ fontSize: '0.85rem', color: 'var(--canvas-text-muted)', marginBottom: '12px' }">{{ c.instructor }}</p>
+            <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+              <div :style="{ display: 'flex', alignItems: 'baseline', gap: '2px' }">
+                <span :style="{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--canvas-accent)' }">{{ c.price }}</span>
+                <span :style="{ fontSize: '0.8rem' }">ج.م</span>
               </div>
-              <button class="text-sm font-bold text-[var(--t-color-primary)] hover:underline">
-                عرض الكورس ←
-              </button>
+              <span :style="{ fontSize: '0.8rem', color: 'var(--canvas-text-muted)' }">{{ c.duration }}</span>
             </div>
           </div>
         </div>

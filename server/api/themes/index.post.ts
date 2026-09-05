@@ -1,48 +1,40 @@
 import { z } from 'zod'
 import { themes } from '../../db/schema'
-import { generateId } from '../../utils/security'
+import { requireAuth, getTenantId } from '../../lib/auth'
+import { genId } from '../../utils/security'
 
-const tokensSchema = z.object({}).passthrough() // accept any token keys
-
-const createThemeSchema = z.object({
+const schema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).default(''),
-  tokens: tokensSchema.default({}),
-  parentThemeId: z.string().nullable().optional(),
-  thumbnail: z.string().optional()
+  tokens: z.record(z.string(), z.string()).default({}),
+  parentThemeId: z.string().nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+  const tenantId = getTenantId(event)
   const body = await readBody(event)
-  const parsed = createThemeSchema.safeParse(body)
+  const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid theme', data: parsed.error.flatten() })
+    throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
   const db = useDB()
-  const id = generateId()
   const now = Math.floor(Date.now() / 1000)
+  const id = genId()
 
   db.insert(themes).values({
     id,
+    tenantId,
     name: parsed.data.name,
     description: parsed.data.description,
     tokens: JSON.stringify(parsed.data.tokens),
-    parentThemeId: parsed.data.parentThemeId ?? null,
-    thumbnail: parsed.data.thumbnail ?? null,
+    parentThemeId: parsed.data.parentThemeId || null,
+    version: 1,
     isBuiltIn: false,
     createdAt: now,
     updatedAt: now
   }).run()
 
-  return {
-    id,
-    name: parsed.data.name,
-    description: parsed.data.description,
-    tokens: parsed.data.tokens,
-    parentThemeId: parsed.data.parentThemeId ?? null,
-    isBuiltIn: false,
-    createdAt: now,
-    updatedAt: now
-  }
+  return { id, ...parsed.data, isBuiltIn: false, version: 1, createdAt: now, updatedAt: now }
 })

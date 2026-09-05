@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useBuilderStore } from '~/stores/builder'
 
 const store = useBuilderStore()
 
-const canvasWidth = computed(() => {
+const width = computed(() => {
   switch (store.device) {
     case 'mobile': return '375px'
     case 'tablet': return '768px'
@@ -15,9 +15,7 @@ const canvasWidth = computed(() => {
 const onDrop = (e: DragEvent) => {
   e.preventDefault()
   const type = e.dataTransfer?.getData('block-type') as any
-  if (type) {
-    store.addBlock(type, null)
-  }
+  if (type) store.addBlock(type, null)
 }
 
 const onDragOver = (e: DragEvent) => {
@@ -29,36 +27,23 @@ const onCanvasClick = () => {
   store.selectBlock(null)
 }
 
-const applyThemeTokens = computed(() => {
+/* Theme tokens → CSS variables for the canvas */
+const themeStyle = computed(() => {
   if (!store.theme) return ''
-  const tokens = store.theme.tokens || {}
+  const t = store.theme.tokens || {}
   const lines: string[] = []
   const map: Record<string, string> = {
-    'color.primary': '--t-color-primary',
-    'color.primaryForeground': '--t-color-primary-foreground',
-    'color.secondary': '--t-color-secondary',
-    'color.secondaryForeground': '--t-color-secondary-foreground',
-    'color.accent': '--t-color-accent',
-    'color.accentForeground': '--t-color-accent-foreground',
-    'color.bg': '--t-color-bg',
-    'color.surface': '--t-color-surface',
-    'color.surfaceElevated': '--t-color-surface-elevated',
-    'color.border': '--t-color-border',
-    'color.text': '--t-color-text',
-    'color.textMuted': '--t-color-text-muted',
-    'color.textSubtle': '--t-color-text-subtle',
-    'font.heading': '--t-font-heading',
-    'font.body': '--t-font-body',
-    'font.mono': '--t-font-mono',
-    'radius.sm': '--t-radius-sm',
-    'radius.md': '--t-radius-md',
-    'radius.lg': '--t-radius-lg',
-    'radius.xl': '--t-radius-xl',
-    'shadow.sm': '--t-shadow-sm',
-    'shadow.md': '--t-shadow-md',
-    'shadow.lg': '--t-shadow-lg'
+    'color.bg': '--canvas-bg',
+    'color.surface': '--canvas-surface',
+    'color.text': '--canvas-text',
+    'color.textMuted': '--canvas-text-muted',
+    'color.accent': '--canvas-accent',
+    'color.accentFg': '--canvas-accent-fg',
+    'color.border': '--canvas-border',
+    'font.heading': '--canvas-font-heading',
+    'font.body': '--canvas-font-body'
   }
-  for (const [k, v] of Object.entries(tokens)) {
+  for (const [k, v] of Object.entries(t)) {
     if (map[k] && v) lines.push(`${map[k]}: ${v}`)
   }
   return lines.join('; ')
@@ -66,35 +51,33 @@ const applyThemeTokens = computed(() => {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto bg-[var(--ui-bg-muted)] p-4 md:p-8 flex justify-center">
+  <div class="h-full overflow-y-auto bg-[var(--bg)] p-4 md:p-8 flex justify-center">
     <div
-      :class="[
-        'transition-all duration-300',
-        store.device === 'mobile' && 'shadow-2xl',
-        store.device === 'tablet' && 'shadow-2xl'
-      ]"
-      :style="{ width: canvasWidth, maxWidth: '100%' }"
+      :style="{ width: width, maxWidth: '100%', transition: 'width 0.2s' }"
+      :class="store.device !== 'desktop' ? 'shadow-2xl' : ''"
     >
       <div
-        class="t-builder-canvas min-h-[600px] shadow-lg"
-        :style="applyThemeTokens"
+        class="builder-canvas min-h-[600px] rounded-lg overflow-hidden"
+        :style="themeStyle"
         @click="onCanvasClick"
         @drop="onDrop"
         @dragover="onDragOver"
       >
-        <template v-if="store.page && store.page.blocks.length">
+        <template v-if="store.currentPage && store.currentPage.blocks.length">
           <BlockRenderer
-            v-for="block in store.page.blocks"
+            v-for="block in store.currentPage.blocks"
             :key="block.id"
             :block="block"
             :editing="true"
-            @select-block="store.selectBlock($event)"
+            @select="store.selectBlock($event)"
           />
         </template>
-        <div v-else class="t-drop-zone m-4 min-h-[500px]">
-          <UIcon name="i-lucide-mouse-pointer-square-dashed" class="text-4xl mb-3" />
-          <p class="text-base font-medium">ابدأ السحب والإفلات</p>
-          <p class="text-xs mt-1">اسحب عناصر من اللوحة اليمنى</p>
+        <div v-else class="blk-empty" style="min-height: 400px; margin: 16px;">
+          <div class="text-center">
+            <UIcon name="i-lucide-mouse-pointer-square-dashed" class="text-3xl mb-2" />
+            <p class="text-sm font-medium">اسحب عناصر من اليمين</p>
+            <p class="text-xs mt-1 opacity-60">أو اضغط على أي عنصر لإضافته</p>
+          </div>
         </div>
       </div>
     </div>

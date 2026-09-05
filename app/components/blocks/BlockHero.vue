@@ -1,90 +1,84 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
 
-const bgClass = computed(() => {
-  switch (props.block.props.background) {
-    case 'gradient':
-      return 'bg-gradient-to-br from-[var(--t-color-primary)] via-[var(--t-color-secondary)] to-[var(--t-color-accent)] text-white'
-    case 'solid':
-      return 'bg-[var(--t-color-primary)] text-[var(--t-color-primary-foreground)]'
-    case 'image':
-      return props.block.props.image
-        ? 'text-white'
-        : 'bg-[var(--t-color-surface)] text-[var(--t-color-text)]'
-    default:
-      return 'bg-[var(--t-color-bg)] text-[var(--t-color-text)]'
-  }
-})
-
-const bgStyle = computed(() => {
-  if (props.block.props.background === 'image' && props.block.props.image) {
-    return `background: linear-gradient(rgba(15,23,42,0.7), rgba(15,23,42,0.8)), url(${props.block.props.image}); background-size: cover; background-position: center;`
-  }
-  return ''
-})
-
-const layoutClass = computed(() => {
-  switch (props.block.props.layout) {
-    case 'split-right': return 'grid md:grid-cols-2 gap-12 items-center'
-    case 'split-left': return 'grid md:grid-cols-2 gap-12 items-center'
-    case 'centered': return 'text-center max-w-3xl mx-auto'
-    case 'full-bg': return 'text-center max-w-3xl mx-auto min-h-[60vh] flex flex-col justify-center'
-    default: return 'text-center max-w-3xl mx-auto'
-  }
-})
-
-const alignClass = computed(() => ({
-  right: 'text-right', center: 'text-center', left: 'text-left'
-}[props.block.props.align] || 'text-right'))
-
-// For split layouts, image goes either side
-const imageOrder = computed(() => props.block.props.layout === 'split-left' ? 'order-1' : 'order-2')
-const contentOrder = computed(() => props.block.props.layout === 'split-left' ? 'order-2' : 'order-1')
-
-const isSplit = computed(() => ['split-right', 'split-left'].includes(props.block.props.layout))
+const bg: Record<string, string> = {
+  light: 'var(--canvas-bg)',
+  dark: 'var(--canvas-text)',
+  accent: 'var(--canvas-accent)'
+}
+const fg: Record<string, string> = {
+  light: 'var(--canvas-text)',
+  dark: 'var(--canvas-bg)',
+  accent: 'var(--canvas-accent-fg)'
+}
+const pad = { none: '0', sm: '24px', md: '48px', lg: '64px', xl: '96px', '2xl': '128px' }
+const aligns: Record<string, string> = { right: 'right', center: 'center', left: 'left' }
 </script>
-
 <template>
-  <section :class="['py-16 px-6', bgClass]" :style="bgStyle">
-    <div :class="['mx-auto max-w-6xl', layoutClass, alignClass]">
-      <!-- Image side (for split layouts) -->
-      <div v-if="isSplit && block.props.image" :class="imageOrder">
-        <img
-          :src="block.props.image"
-          alt=""
-          class="rounded-2xl shadow-2xl w-full"
+  <section
+    :style="{
+      background: bg[block.props.background] || bg.light,
+      color: fg[block.props.background] || fg.light,
+      paddingTop: pad[block.props.paddingY as keyof typeof pad] || '48px',
+      paddingBottom: pad[block.props.paddingY as keyof typeof pad] || '48px',
+      paddingRight: '24px',
+      paddingLeft: '24px'
+    }"
+  >
+    <div :style="{ maxWidth: '1200px', margin: '0 auto', textAlign: aligns[block.props.align] || 'center' }">
+      <p
+        v-if="block.props.eyebrow"
+        :style="{
+          fontSize: '13px',
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+          opacity: 0.7,
+          marginBottom: '12px'
+        }"
+      >
+        {{ block.props.eyebrow }}
+      </p>
+      <h1 :style="{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: '16px' }">
+        {{ block.props.title }}
+      </h1>
+      <p :style="{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', opacity: 0.8, lineHeight: 1.6, marginBottom: '32px', maxWidth: '600px', margin: block.props.align === 'center' ? '0 auto 32px' : '0 0 32px' }">
+        {{ block.props.subtitle }}
+      </p>
+      <div :style="{ display: 'flex', gap: '12px', justifyContent: aligns[block.props.align] === 'left' ? 'flex-start' : aligns[block.props.align] === 'right' ? 'flex-start' : 'center', flexWrap: 'wrap' }">
+        <a
+          v-if="block.props.primaryButton?.text"
+          :href="editing ? '#' : block.props.primaryButton.href"
+          :style="{
+            display: 'inline-block',
+            padding: '14px 28px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 600,
+            textDecoration: 'none',
+            background: block.props.background === 'accent' ? fg[block.props.background] : 'var(--canvas-accent)',
+            color: block.props.background === 'accent' ? bg[block.props.background] : 'var(--canvas-accent-fg)'
+          }"
         >
-      </div>
-
-      <!-- Content side -->
-      <div :class="[isSplit ? contentOrder : '']">
-        <span v-if="block.props.eyebrow" class="inline-block text-sm font-semibold mb-3 opacity-80 tracking-wider uppercase">
-          {{ block.props.eyebrow }}
-        </span>
-        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
-          {{ block.props.title }}
-        </h1>
-        <p class="text-lg md:text-xl mb-8 opacity-90 leading-relaxed">
-          {{ block.props.subtitle }}
-        </p>
-        <div class="flex flex-wrap gap-4" :class="alignClass === 'text-center' ? 'justify-center' : 'justify-start'">
-          <a
-            v-if="block.props.primaryButton"
-            :href="block.props.primaryButton.href"
-            class="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-white text-[var(--t-color-primary)] font-bold hover:scale-105 transition-transform shadow-lg"
-          >
-            {{ block.props.primaryButton.text }}
-          </a>
-          <a
-            v-if="block.props.secondaryButton"
-            :href="block.props.secondaryButton.href"
-            class="inline-flex items-center gap-2 px-7 py-3 rounded-xl border-2 border-white/30 text-white font-bold hover:bg-white/10 transition-colors"
-          >
-            {{ block.props.secondaryButton.text }}
-          </a>
-        </div>
+          {{ block.props.primaryButton.text }}
+        </a>
+        <a
+          v-if="block.props.secondaryButton?.text"
+          :href="editing ? '#' : block.props.secondaryButton.href"
+          :style="{
+            display: 'inline-block',
+            padding: '14px 28px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 600,
+            textDecoration: 'none',
+            border: `1px solid ${block.props.background === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'}`,
+            color: 'inherit'
+          }"
+        >
+          {{ block.props.secondaryButton.text }}
+        </a>
       </div>
     </div>
   </section>

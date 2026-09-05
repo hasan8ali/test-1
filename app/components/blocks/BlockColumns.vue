@@ -1,46 +1,50 @@
 <script setup lang="ts">
 import type { Block } from '~/types/builder'
-
 const props = defineProps<{ block: Block; editing?: boolean }>()
+defineEmits<{ select: [id: string] }>()
 
-const layout = computed(() => props.block.props.layout || '1-1')
+const layouts: Record<string, string> = {
+  '1-1': '1fr 1fr',
+  '1-2': '1fr 2fr',
+  '2-1': '2fr 1fr',
+  '1-3': '1fr 3fr',
+  '3-1': '3fr 1fr',
+  '1-1-1': '1fr 1fr 1fr'
+}
+const gap = { none: '0', sm: '8px', md: '16px', lg: '24px', xl: '48px' }
 
-const columns = computed(() => {
-  switch (layout.value) {
-    case '1-1': return ['1fr', '1fr']
-    case '1-2': return ['1fr', '2fr']
-    case '2-1': return ['2fr', '1fr']
-    case '1-3': return ['1fr', '3fr']
-    case '3-1': return ['3fr', '1fr']
-    case '1-1-1': return ['1fr', '1fr', '1fr']
-    default: return ['1fr', '1fr']
-  }
-})
-
-const gapClass = computed(() => ({
-  none: 'gap-0', sm: 'gap-2', md: 'gap-4', lg: 'gap-6', xl: 'gap-8', '2xl': 'gap-12'
-}[props.block.props.gap] || 'gap-4'))
-
-const stackClass = computed(() => props.block.props.stackOnMobile ? 'flex-col md:grid' : 'grid')
-
-defineEmits<{ 'select-block': [id: string] }>()
+const cols = computed(() => layouts[props.block.props.layout] || '1fr 1fr')
 </script>
 
 <template>
-  <div :class="[stackClass, gapClass]" :style="{ gridTemplateColumns: columns.join(' ') }">
+  <div
+    :style="{
+      display: 'grid',
+      gridTemplateColumns: block.props.stackMobile ? '1fr' : cols,
+      gap: gap[block.props.gap as keyof typeof gap] || '16px'
+    }"
+    :class="block.props.stackMobile ? 'md:!grid' : ''"
+    :data-mobile-cols="block.props.stackMobile ? cols : null"
+  >
     <template v-if="block.children?.length">
       <BlockRenderer
         v-for="child in block.children"
         :key="child.id"
         :block="child"
         :editing="editing"
-        @select-block="$emit('select-block', $event)"
+        @select="$emit('select', $event)"
       />
     </template>
     <template v-else-if="editing">
-      <div v-for="(_, i) in columns" :key="i" class="t-drop-zone">
-        عمود {{ i + 1 }}
-      </div>
+      <div v-for="i in (cols.split(' ').length)" :key="i" class="blk-empty">عمود {{ i }}</div>
     </template>
   </div>
 </template>
+
+<style scoped>
+@media (min-width: 768px) {
+  [data-mobile-cols] {
+    grid-template-columns: attr(data-mobile-cols) !important;
+  }
+}
+</style>

@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { listBlocksByCategory } from '~/utils/blocks'
+import { useBuilderStore } from '~/stores/builder'
+import { blocksByCategory } from '~/utils/blocks'
 import type { BlockType } from '~/types/builder'
 
-const props = defineProps<{
-  /** Whether to show the palette (collapsed on mobile) */
-  collapsed?: boolean
-}>()
+const store = useBuilderStore()
+const cats = blocksByCategory()
 
-const emit = defineEmits<{
-  'add-block': [type: BlockType]
-}>()
-
-const categories = listBlocksByCategory()
-
-const categoryLabels: Record<string, string> = {
+const labels: Record<string, string> = {
   layout: 'تخطيط',
   content: 'محتوى',
-  composed: 'مركّبة',
-  tolnera: 'Tolnera',
+  composed: 'مركّب',
+  education: 'تعليمي',
   advanced: 'متقدم'
 }
 
@@ -27,44 +20,34 @@ const onDragStart = (e: DragEvent, type: BlockType) => {
   e.dataTransfer!.effectAllowed = 'copy'
 }
 
-const categoryColors: Record<string, string> = {
-  layout: 'text-blue-500',
-  content: 'text-emerald-500',
-  composed: 'text-violet-500',
-  tolnera: 'text-amber-500',
-  advanced: 'text-rose-500'
+const onAdd = (type: BlockType) => {
+  store.addBlock(type, null)
 }
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-[var(--ui-bg)]">
-    <div class="px-4 py-3 border-b border-[var(--ui-border)] flex items-center justify-between">
-      <h3 class="font-bold text-sm flex items-center gap-2">
-        <UIcon name="i-lucide-plus-circle" />
-        إضافة عنصر
-      </h3>
+  <div class="h-full flex flex-col">
+    <div class="px-3 py-2 border-b border-[var(--border)]">
+      <h3 class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">العناصر</h3>
     </div>
-
-    <div class="flex-1 overflow-y-auto p-3 space-y-5">
-      <div v-for="(blocks, cat) in categories" :key="cat" v-show="blocks.length">
-        <h4 :class="['text-xs font-bold uppercase tracking-wider mb-2', categoryColors[cat]]">
-          {{ categoryLabels[cat] }}
-        </h4>
-        <div class="grid grid-cols-2 gap-2">
+    <div class="flex-1 overflow-y-auto p-2 space-y-4">
+      <div v-for="(blocks, cat) in cats" :key="cat" v-show="blocks.length">
+        <p class="text-[10px] font-bold text-[var(--text-subtle)] uppercase tracking-wider px-1 mb-1.5">{{ labels[cat] }}</p>
+        <div class="grid grid-cols-2 gap-1.5">
           <button
             v-for="def in blocks"
             :key="def.type"
             draggable="true"
             @dragstart="onDragStart($event, def.type)"
-            @click="emit('add-block', def.type)"
-            class="flex flex-col items-center gap-1 p-3 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg)] hover:border-[var(--t-color-primary)] hover:bg-[var(--t-color-primary)]/5 transition-all cursor-grab active:cursor-grabbing group"
+            @click="onAdd(def.type)"
+            :class="[
+              'flex flex-col items-start gap-1 p-2 rounded-md border text-right transition-all group',
+              'border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--surface-2)]'
+            ]"
             :title="def.description"
           >
-            <UIcon
-              :name="def.icon"
-              class="text-xl text-[var(--ui-text-muted)] group-hover:text-[var(--t-color-primary)]"
-            />
-            <span class="text-xs font-medium text-center leading-tight">{{ def.label }}</span>
+            <UIcon :name="def.icon" class="text-base text-[var(--text-muted)] group-hover:text-[var(--accent)]" />
+            <span class="text-xs font-medium">{{ def.label }}</span>
           </button>
         </div>
       </div>
